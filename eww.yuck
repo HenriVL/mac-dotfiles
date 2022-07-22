@@ -1,0 +1,244 @@
+(defvar play-pause "")
+
+(defwidget bottom []
+  (box :class "bottom" :orientation "v" :valign "end" :spacing "0" :space-evenly "false"
+  album_art
+  playpause
+  (brightness_slider)
+  (power_widget)
+  ))
+
+(defwidget top []
+  (box :class "bottom" :orientation "v" :valign "start" :spacing "1" :space-evenly "false"
+  (arch-logo)
+  (time_widget)
+  (spotify_controls)
+  ))
+
+(defwidget bar []
+  (box :class "bar"
+       :orientation "v"
+(top)
+(workspace_widget)
+(bottom)))
+
+(defwidget stats []
+  (box :orientation "v"
+       :space-evenly false
+       :spacing -20
+  (box :class "widgets"
+       :orientation "h"
+       :space-evenly false
+  (stat-labels)
+  (box :orientation "v"
+    (cpu)
+    (ram)
+))
+  )
+  )
+
+(defwidget spotify-window []
+  (box :orientation "v"
+       :space-evenly false
+       :class "widgets"
+   (spotify_widget)))
+
+(defwidget cpu []
+  (box :class "cpu" :spacing 10 :space-evenly false
+    (graph :value cpu
+           :class "cpu-graph"
+           :line-style "round"
+           :thickness 5
+           :width 400
+           :height 150
+           :time-range "30s"
+           :dynamic true  )
+           ))
+
+(defwidget ram []
+  (box :class "ram" :spacing 10 :space-evenly false
+    (graph :value ram-percent
+           :class "ram-graph"
+           :line-style "round"
+           :thickness 5
+           :width 400
+           :height 150
+           :time-range "30s"
+           :max 100  )
+           ))
+
+(defwidget stat-labels []
+  (box :orientation "v"
+    (box :orientation "h"
+         :class "cpu-text"
+         :space-evenly false
+      (label :class "cpu-icon"
+             :text '﬙')
+      (label :class "cpu-text-label"
+             :width 150
+             :text '${round(cpu,0)}%'))
+    (box :orientation "h"
+         :class "ram-text"
+         :space-evenly false
+      (label :class "ram-icon"
+             :text '')
+      (label :class "ram-text-label"
+             :width 150
+             :text '${ram-usage}G'))
+))
+
+(defpoll ram-usage :interval "2s"
+   "~/.config/eww/scripts/ram-usage.py jow")
+
+(defpoll ram-percent :interval "2s"
+   "~/.config/eww/scripts/ram-usage.py percent")
+
+(defpoll cpu :interval "0.5s"
+   "~/.config/eww/scripts/cpu-usage.py")
+
+(defwidget time_widget []
+  (box :class "time"
+    time
+))
+
+(defwidget power_widget []
+  (box :class "power"
+       :orientation "v"
+    (button :onclick "systemctl suspend" "")
+))
+
+(defwidget arch-logo []
+  (button :class "arch-logo"
+          :onclick "~/.config/eww/scripts/open-close-widgets.py" '')
+)
+
+(defwidget spotify_controls []
+  (box :class "spotify"
+       :orientation "v"
+    (button :onclick "playerctl --player=spotify previous" '玲')
+    (button :onclick "playerctl --player=spotify play-pause && ./scripts/play-pause.py" play-pause)
+    (button :onclick "playerctl --player=spotify next" '怜')))
+
+(defwidget spotify_widget []
+  (box :space-evenly false
+  (box :orientation "h"
+       :class "album-cover"
+       :width 340
+       :height 340
+       :style "background-image: url('assets/cover.png${album_art}')"
+       )
+    (box :orientation "v"
+         :space-evenly false
+    (label :text song_title
+           :class "album-title"
+           :wrap true
+           :show_truncated false
+           :limit-width 30
+           :xalign 0
+           :width 330
+           :valign "start")
+    (label :text song_artist
+           :xalign 0
+           )
+    (box :orientation "v"
+         :space-evenly false
+         :spacing 30
+    (box :class "spotify-ui"
+         :space-evenly false
+         :orientation "h"
+    (button :class "spotify-ui-prev"
+            :onclick "playerctl --player=spotify previous" '玲')
+    (button :class "spotify-ui-pause"
+            :onclick "playerctl --player=spotify play-pause && ./scripts/play-pause.py" play-pause)
+    (button :class "spotify-ui-next"
+            :onclick "playerctl --player=spotify next" '怜')
+    ) (box :class "spotify-slider"
+           :space-evenly false
+      (scale :value progress
+             :max 101
+             :orientation "h"
+             ) ))
+    )))
+
+(defpoll progress :interval "1s"
+  "scripts/song-progress.py")
+
+(defwidget brightness_slider []
+    (box :orientation "h" :class "slider-vol-side" :space-evenly "true"
+      (box :orientation "v" :spacing 10 :space-evenly "false"
+      (scale :value initial_brightness
+             :flipped true
+             :onchange "brightnessctl set {}%"
+             :orientation "v"
+             :max 101
+             :min 1))
+      (box :orientation "v" :spacing 0 :space-evenly "false"
+      (scale :value initial_volume
+             :flipped true
+             :onchange "pactl -- set-sink-volume 0 {}%"
+             :orientation "v"
+             :max 101
+             :min 1)))
+)
+
+(defpoll initial_brightness :interval "100000s"
+  "~/.config/eww/scripts/get_brightness.py")
+
+(defpoll initial_volume :interval "100000s"
+  "pamixer --get-volume")
+
+(defwidget workspace_widget []
+  (literal :content workspace_listener))
+
+(defpoll album_art :interval "5s"
+  "curl $(playerctl --player=spotify metadata mpris:artUrl | sed -e 's/open.spotify.com/i.scdn.co/g') --output ~/.config/eww/assets/cover.png")
+
+(deflisten song_title 
+  "playerctl --player=$Control metadata --format {{title}} --follow")
+
+(deflisten song_artist
+  "playerctl --player=$Control metadata --format {{artist}} --follow")
+
+(defpoll workspace_listener :interval "1s"
+  "~/.config/eww/scripts/workspace.py")
+
+(defpoll playpause :interval "1s"
+  "~/.config/eww/scripts/play-pause.py")
+
+(defpoll time :interval "1s"
+  "date '+%H
+%M'")
+
+(defwindow bar
+           :monitor 0
+           :geometry (geometry :x "0"
+                               :y "0"
+                               :width "80px"
+                               :height "1560px"
+                               :anchor "left center")
+           :stacking "fg"
+           :wm-ignore true
+           (bar)
+  )
+
+(defwindow stats
+           :monitor 0
+           :geometry (geometry :x "100px"
+                               :y "20px"
+                               :width "500px"
+                               :height "100px"
+                               :anchor "top left")
+           :stacking "fg"
+           :wm-ignore true
+           (stats))
+
+(defwindow spotify-window
+           :monitor 0
+           :geometry (geometry :x "100px"
+                               :y "400px"
+                               :width "500px"
+                               :height "100px"
+                               :anchor "top left")
+           :stacking "fg"
+           :wm-ignore true
+           (spotify-window))
