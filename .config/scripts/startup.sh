@@ -4,3 +4,4 @@ eww daemon
 eww open bar
 ~/.config/eww/scripts/spacebar.py &
 unclutter --timeout 2
+xmodmap ~/.Xmodmap
